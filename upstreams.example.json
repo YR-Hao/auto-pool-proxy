@@ -1,0 +1,28 @@
+[
+  {
+    "name": "my-upstream-1",
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "sk-your-api-key-here",
+    "provider": "openai-compatible",
+    "enabled": true,
+    "isDefault": true,
+    "priority": 100,
+    "pricingRules": []
+  },
+  {
+    "name": "my-upstream-2",
+    "baseUrl": "https://your-proxy.example.com/v1",
+    "apiKey": "sk-another-key-here",
+    "provider": "openai-compatible",
+    "enabled": true,
+    "isDefault": false,
+    "priority": 200,
+    "pricingRules": [
+      {
+        "match": "gpt-5*",
+        "inputPerMillion": 5,
+        "outputPerMillion": 15
+      }
+    ]
+  }
+]

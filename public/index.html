@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex Switchboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <main class="shell">
+      <section class="topbar panel">
+        <div class="topbar-copy">
+          <p class="eyebrow">PROXY CONSOLE</p>
+          <h1>账号中心</h1>
+          <p class="section-note">
+            参考 sub2api 的账户页逻辑，把筛选、操作、路由和联通性集中到一页。这里只做纯代理管理，不做用户系统。
+          </p>
+        </div>
+
+        <div class="topbar-side">
+          <div class="endpoint-card">
+            <div class="endpoint-head">
+              <span id="health-dot" class="dot"></span>
+              <div>
+                <strong>127.0.0.1:5728</strong>
+                <p>本地代理入口</p>
+              </div>
+            </div>
+            <label class="token-input">
+              <span>Admin Token</span>
+              <input id="admin-token" placeholder="留空表示不使用" />
+            </label>
+          </div>
+          <div class="topbar-actions">
+            <button id="refresh-all" class="button secondary">刷新</button>
+            <button id="open-oauth-modal" class="button secondary">添加 OpenAI 账号</button>
+            <button id="toggle-upstream-form" class="button primary">添加上游</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-grid" id="summary-cards"></section>
+
+      <section class="ops-grid">
+        <section class="panel ops-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">ROUTING</p>
+              <h2>当前代理</h2>
+            </div>
+          </div>
+          <div class="control-inline">
+            <select id="proxy-target"></select>
+            <button id="apply-proxy-target" class="button primary">切换代理</button>
+          </div>
+          <div id="proxy-target-status" class="status-panel">
+            <strong>自动选择</strong>
+            <p>当前按默认上游和故障切换策略自动代理。</p>
+          </div>
+        </section>
+
+        <section class="panel ops-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">CONNECTIVITY</p>
+              <h2>联通性测试</h2>
+            </div>
+          </div>
+          <div class="control-inline">
+            <select id="connectivity-target"></select>
+            <button id="run-connectivity-test" class="button primary">开始测试</button>
+          </div>
+          <div id="connectivity-result" class="status-panel">
+            <strong>等待测试</strong>
+            <p>选择一个账号后开始测试。上游账号会探测 `/models`，官方账号会探测 `chatgpt.com/backend-api/codex/responses`。</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel registry-panel">
+        <div class="panel-head account-head">
+          <div>
+            <p class="eyebrow">ACCOUNTS</p>
+            <h2>账号列表</h2>
+            <p class="section-note">统一查看官方账号和上游账号，按筛选条件快速定位并直接操作。</p>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <input id="account-search" placeholder="搜索名称、邮箱、Base URL、Provider" />
+          <select id="account-kind-filter">
+            <option value="all">全部类型</option>
+            <option value="managed_account">官方账号</option>
+            <option value="upstream">上游账号</option>
+          </select>
+          <select id="account-state-filter">
+            <option value="all">全部状态</option>
+            <option value="healthy">正常</option>
+            <option value="error">异常</option>
+            <option value="disabled">停用</option>
+            <option value="active">当前代理中</option>
+          </select>
+        </div>
+
+        <section id="upstream-form-panel" class="inline-form-panel hidden">
+          <form id="upstream-form" class="upstream-form">
+            <div class="form-head">
+              <div>
+                <p class="eyebrow">ADD UPSTREAM</p>
+                <h3>添加 OpenAI 兼容上游</h3>
+              </div>
+              <button id="close-upstream-form" class="button ghost" type="button">收起</button>
+            </div>
+            <input name="name" placeholder="名称，例如 official-1" required />
+            <input name="baseUrl" placeholder="Base URL，例如 https://api.openai.com" required />
+            <input name="apiKey" placeholder="API Key / Session Token" required />
+            <input name="priority" type="number" value="100" placeholder="优先级" />
+            <textarea
+              name="pricingRules"
+              rows="4"
+              placeholder='价格规则 JSON，例如 [{"match":"gpt-5*","inputPerMillion":5,"outputPerMillion":15}]'
+            ></textarea>
+            <div class="form-actions">
+              <label class="checkbox">
+                <input type="checkbox" name="isDefault" />
+                <span>设为新会话默认上游</span>
+              </label>
+              <button class="button primary" type="submit">添加上游</button>
+            </div>
+          </form>
+        </section>
+
+        <div id="accounts-workspace" class="table-wrap"></div>
+      </section>
+
+      <section class="panel usage-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">USAGE</p>
+            <h2>最近请求</h2>
+            <p class="section-note">最近代理请求的账号、模型、token、成本和延迟。</p>
+          </div>
+        </div>
+        <div id="usage" class="table-wrap"></div>
+      </section>
+    </main>
+
+    <div id="oauth-modal" class="modal hidden">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-card">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">ADD ACCOUNT</p>
+            <h2>添加 OpenAI 账号</h2>
+          </div>
+          <button class="button ghost" data-close-modal="true">关闭</button>
+        </div>
+
+        <div class="auth-mode-tabs">
+          <button class="button secondary auth-mode-tab active" data-auth-mode="manual">手动授权</button>
+          <button class="button ghost auth-mode-tab" data-auth-mode="refresh_token">手动输入 RT</button>
+        </div>
+
+        <div id="oauth-manual-pane" class="auth-pane">
+          <div class="step-card">
+            <strong>1. 生成授权链接</strong>
+            <p>点击按钮生成 OpenAI OAuth 授权链接，浏览器打开后登录并授权。</p>
+            <div class="inline-actions">
+              <button id="generate-auth-link" class="button primary">生成授权链接</button>
+              <a id="open-auth-link" class="button secondary hidden" target="_blank" rel="noreferrer">打开链接</a>
+            </div>
+            <textarea id="auth-url-output" rows="3" readonly placeholder="生成后这里会显示授权链接"></textarea>
+          </div>
+
+          <div class="step-card">
+            <strong>2. 完成浏览器授权</strong>
+            <p>授权完成后，页面会跳回本地 `/auth/callback`。你可以直接粘贴完整回调链接，也可以只粘贴 `code`。</p>
+            <input id="manual-account-name" placeholder="账号名称，可选" />
+            <textarea
+              id="auth-code-input"
+              rows="4"
+              placeholder="粘贴完整回调链接或 code，例如 http://localhost:5728/auth/callback?code=..."
+            ></textarea>
+            <div class="inline-actions">
+              <button id="use-detected-callback" class="button ghost hidden">使用检测到的回调</button>
+              <button id="complete-auth" class="button primary">完成授权</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="oauth-refresh-pane" class="auth-pane hidden">
+          <div class="step-card">
+            <strong>手动导入 Refresh Token</strong>
+            <p>输入 RT 后，系统会向 OpenAI 兑换新的 access token，并把账号保存到本地项目里。</p>
+            <input id="rt-account-name" placeholder="账号名称，可选" />
+            <input id="rt-client-id" placeholder="client_id，可选，默认使用 Codex OpenAI Client ID" />
+            <textarea id="rt-input" rows="5" placeholder="粘贴 refresh token"></textarea>
+            <button id="import-rt" class="button primary">导入 RT</button>
+          </div>
+        </div>
+
+        <p id="oauth-status" class="modal-status muted"></p>
+      </section>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

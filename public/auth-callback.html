@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenAI 授权回调</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell callback-shell">
+      <section class="panel callback-panel">
+        <p class="eyebrow">AUTH CALLBACK</p>
+        <h1>OpenAI 授权已返回本地</h1>
+        <p class="lede">
+          下面是浏览器当前回调链接。页面会把它回传给主面板，回到主页后可以直接点“使用检测到的回调”，也可以手动复制整条链接。
+        </p>
+        <textarea id="callback-url" rows="6" readonly></textarea>
+        <button id="copy-callback" class="button primary">复制回调链接</button>
+      </section>
+    </main>
+
+    <script>
+      const value = window.location.href;
+      document.querySelector("#callback-url").value = value;
+      fetch("__APP_ORIGIN__/api/openai/oauth/callback-cache", {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: value
+      }).catch(() => {});
+      document.querySelector("#copy-callback").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(value);
+      });
+    </script>
+  </body>
+</html>
